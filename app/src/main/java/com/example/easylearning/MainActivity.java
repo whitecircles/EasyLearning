@@ -10,12 +10,14 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.Observer;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.room.Room;
 
 import android.view.View;
 import android.widget.Button;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -27,14 +29,32 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        AppDatabase db =  Room.databaseBuilder(getApplicationContext(),
-                AppDatabase.class, "database").allowMainThreadQueries().build();
+        AppDatabase db = App.getInstance().getDatabase();
+
+        if (db == null) {
+            AppDatabase dbnew = Room.databaseBuilder(getApplicationContext(),
+                    AppDatabase.class, "database").build();
+            db = dbnew;
+        }
 
         WordDao itemsDao = db.wordDao();
 
-        LiveData<List<Item>> liveData = (LiveData<List<Item>>) db.wordDao().getAll();
+        LiveData<List<Item>> liveData = (LiveData<List<Item>>) itemsDao.getAll();
 
         RecyclerView recyclerView = (RecyclerView) findViewById(R.id.recycler);
+        RecyclerView.LayoutManager lm = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(lm);
+        Item item = new Item();
+        item.setLanguage(true);
+        item.setSlovo("начните изучать английский.");
+        item.setTheword("start learning English.");
+        List<Item> item1 = new ArrayList<Item>();
+        item1.add(item);
+        RecAdapter adapter = new RecAdapter(getApplicationContext(), item1);
+        // устанавливаем для списка адаптер
+        recyclerView.setAdapter(adapter);
+
+
         recyclerView.addOnItemTouchListener(
                 new RecyclerItemClickListener(this, recyclerView ,new RecyclerItemClickListener.OnItemClickListener() {
                     @Override public void onItemClick(View view, int position) {
@@ -53,16 +73,25 @@ public class MainActivity extends AppCompatActivity {
                 })
         );
 
-        liveData.observe(this, new Observer<List<Item>>() {
-            @Override
-            public void onChanged(@Nullable List<Item> value) {
+            liveData.observe(this, new Observer<List<Item>>() {
+                @Override
+                public void onChanged(@Nullable List<Item> value) {
 
-                // создаем адаптер
-                RecAdapter adapter = new RecAdapter(getApplicationContext(), value);
-                // устанавливаем для списка адаптер
-                recyclerView.setAdapter(adapter);
-            }
-        });
+                    if (value != null) {
+                        // создаем адаптер
+                        RecAdapter adapter = new RecAdapter(getApplicationContext(), value);
+                        // устанавливаем для списка адаптер
+                        recyclerView.setAdapter(adapter);
+                    }
+
+
+
+
+
+                }
+            });
+
+
 
         FloatingActionButton fab = findViewById(R.id.fab);
         Intent intent = new Intent(this, SubActivityToCreate.class);
